@@ -1,0 +1,37 @@
+.PHONY: help setup data features forecast uncertainty optimize backtest all test clean
+
+PYTHON ?= python
+
+help:  ## Show this help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
+		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
+
+setup:  ## Install pinned dependencies
+	$(PYTHON) -m pip install -r requirements.txt
+
+data:  ## [Layer 0] Download & clean the ETF universe -> data/processed/
+	$(PYTHON) -m src.etl.download
+
+features:  ## [Layer 0] Build model features from the clean panel (TODO)
+	@echo "TODO: implement src/features"
+
+forecast:  ## [Layer 1] Train winning forecaster, produce return forecasts (TODO)
+	@echo "TODO: implement src/models"
+
+uncertainty:  ## [Layer 2] Quantify forecast uncertainty for the optimiser (TODO)
+	@echo "TODO: implement uncertainty estimation"
+
+optimize:  ## [Layer 3] Solve uncertainty-aware allocation (cvxpy) (TODO)
+	@echo "TODO: implement src/optimization"
+
+backtest:  ## [Layer 4] Backtest vs 1/N and naive Markowitz; write results/ (TODO)
+	@echo "TODO: implement src/evaluation"
+
+all: data features forecast uncertainty optimize backtest  ## Run the full pipeline
+
+test:  ## Run the test suite
+	$(PYTHON) -m pytest -q
+
+clean:  ## Remove generated data & results (keeps .gitkeep)
+	find data/raw data/processed results/figures results/metrics \
+		-type f ! -name '.gitkeep' -delete

@@ -1,0 +1,24 @@
+# Core data stack
+numpy==1.26.4
+pandas==2.2.3
+scipy==1.13.1
+pyarrow==17.0.0        # parquet engine
+
+# Data sourcing
+yfinance==0.2.50
+
+# Forecasting layer
+scikit-learn==1.5.2
+torch==2.4.1           # LSTM / Transformer
+statsmodels==0.14.4    # ARIMA baseline (annexe)
+
+# Optimization layer
+cvxpy==1.5.3
+
+# Visualisation / reporting
+matplotlib==3.9.2
+seaborn==0.13.2
+
+# Tooling
+tqdm==4.66.5
+pytest==8.3.3
