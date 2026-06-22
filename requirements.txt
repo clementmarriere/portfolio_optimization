@@ -5,7 +5,11 @@ scipy==1.13.1
 pyarrow==17.0.0        # parquet engine
 
 # Data sourcing
-yfinance==0.2.50
+# NB: yfinance n'est PAS épinglé dur. Il casse à chaque changement du backend
+# Yahoo ; figer une version expose à des erreurs "Expecting value"/YFTzMissing.
+# On garde un plancher et on suit les releases.
+yfinance>=1.4.1
+curl_cffi>=0.7.0   # impersonation requise par yfinance pour éviter le blocage Yahoo
 
 # Forecasting layer
 scikit-learn==1.5.2

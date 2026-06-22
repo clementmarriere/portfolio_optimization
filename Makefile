@@ -12,11 +12,11 @@ setup:  ## Install pinned dependencies
 data:  ## [Layer 0] Download & clean the ETF universe -> data/processed/
 	$(PYTHON) -m src.etl.download
 
-features:  ## [Layer 0] Build model features from the clean panel (TODO)
-	@echo "TODO: implement src/features"
+features:  ## [Layer 0] Build model features from the clean panel -> data/processed/
+	$(PYTHON) -m src.features.build
 
-forecast:  ## [Layer 1] Train winning forecaster, produce return forecasts (TODO)
-	@echo "TODO: implement src/models"
+forecast:  ## [Layer 1] Walk-forward forecasts (headline + annex) -> data/processed/
+	$(PYTHON) -m src.models.walkforward
 
 uncertainty:  ## [Layer 2] Quantify forecast uncertainty for the optimiser (TODO)
 	@echo "TODO: implement uncertainty estimation"

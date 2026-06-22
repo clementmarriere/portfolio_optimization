@@ -75,8 +75,8 @@ portfolio-optim/
 ├── src/
 │   ├── config.py     # source unique : chemins, dates, univers
 │   ├── etl/          # ✅ couche 0 — téléchargement & nettoyage
-│   ├── features/     # ⬜ couche 0 — construction de features
-│   ├── models/       # ⬜ couches 1 & 2 — forecasting + incertitude
+│   ├── features/     # ✅ couche 0 — construction de features
+│   ├── models/       # ✅ couche 1 forecasting ; ⬜ couche 2 incertitude
 │   ├── optimization/ # ⬜ couche 3 — allocation (cvxpy)
 │   └── evaluation/   # ⬜ couche 4 — backtest & métriques
 ├── notebooks/        # exploration uniquement
@@ -107,10 +107,14 @@ Targets du pipeline : `data` → `features` → `forecast` → `uncertainty`
 
 - [x] **Couche 0 — Données** : ETL yfinance, nettoyage (jours fériés / NaN),
       sortie parquet + rapport de couverture, tests.
-- [ ] **Couche 0 — Features** : rendements/vol glissants, momentum, signaux
-      macro éventuels ; séparation train/valid/test temporelle stricte.
-- [ ] **Couche 1 — Forecasting** : choisir le modèle gagnant (cible : LSTM/
-      Transformer), figer baselines ARIMA & moving-average en annexe.
+- [x] **Couche 0 — Features** : momentum (1/3/6/12m, 12-1), vol & downside-vol
+      glissantes, écart MA200, drawdown 1 an ; cible = rendement fin-de-mois →
+      fin-de-mois (non chevauchant), contrat anti-fuite testé. Horizon **mensuel**.
+- [x] **Couche 1 — Forecasting** : modèle de tête = **ML poolé cross-sectionnel**
+      (GBM), walk-forward à fenêtre expansive sans fuite, métriques orientées
+      allocation (IC, IR, hit-rate, RMSE). Annexe = ridge / moving-average /
+      historical-mean derrière la même interface. ARIMA & LSTM/Transformer : à
+      brancher en annexe (interface prête).
 - [ ] **Couche 2 — Incertitude** : MC Dropout (réutilise immo_antibes) vs
       bootstrap vs VAE ; **calibration** des intervalles à vérifier.
 - [ ] **Couche 3 — Optimisation** : formulation cvxpy mean-variance robuste

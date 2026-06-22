@@ -30,6 +30,9 @@ RAW_PRICES_PATH = RAW_DIR / "prices_raw.parquet"
 PRICES_PATH = PROCESSED_DIR / "prices.parquet"
 RETURNS_PATH = PROCESSED_DIR / "returns.parquet"
 COVERAGE_PATH = PROCESSED_DIR / "coverage.csv"
+FEATURES_PATH = PROCESSED_DIR / "features.parquet"
+FORECASTS_PATH = PROCESSED_DIR / "forecasts.parquet"
+FORECAST_METRICS_PATH = METRICS_DIR / "forecast_metrics.csv"
 
 # --------------------------------------------------------------------------- #
 # Backtest window
@@ -41,6 +44,26 @@ END_DATE = None  # None -> today, resolved at download time.
 # Trading-currency of the price data. Conversion to CHF for reporting is a
 # downstream step and intentionally NOT done here.
 BASE_CURRENCY = "USD"
+
+# --------------------------------------------------------------------------- #
+# Forecast / rebalancing horizon
+# --------------------------------------------------------------------------- #
+# Monthly: forecast & rebalance at each month-end. Targets are non-overlapping
+# (month-end to month-end), which keeps the train/test setup clean.
+REBALANCE_FREQ = "ME"        # pandas month-end alias
+HORIZON_DAYS = 21            # informational: ~trading days per month
+MIN_HISTORY_DAYS = 252       # longest rolling window -> drop earlier rows
+
+# --------------------------------------------------------------------------- #
+# Forecasting layer (couche 1)
+# --------------------------------------------------------------------------- #
+# Headline model shown in the main pipeline; others stay available as annex.
+HEADLINE_MODEL = "gbm"
+# Months of history required before the first out-of-sample forecast
+# (expanding-window walk-forward warm-up).
+TRAIN_MIN_MONTHS = 60
+# Baselines reported alongside the headline (the "annex" comparison).
+ANNEX_MODELS = ["ridge", "moving_average", "historical_mean"]
 
 
 # --------------------------------------------------------------------------- #
