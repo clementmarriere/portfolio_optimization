@@ -1,9 +1,11 @@
 # portfolio-optim — Allocation de portefeuille sous incertitude
 
-> **Résultat visé (une phrase).** Une allocation construite *en tenant compte de
-> l'incertitude des prévisions de rendement* obtient, sur un backtest 2007→aujourd'hui,
-> un meilleur **Sharpe ratio** et un **max drawdown** plus faible qu'une allocation
-> naïve (1/N et Markowitz max-Sharpe sur estimateurs d'échantillon).
+> **Résultat (une phrase).** Quantifier l'incertitude des prévisions de rendement
+> et l'injecter dans un optimiseur robuste **répare l'instabilité de Markowitz** :
+> sur un backtest 2013→2026, le Sharpe passe de 0.22 à **0.33**, le max drawdown
+> de −26 % à **−18 %** et le turnover est **divisé par ~2.6** — un gain *attribué*
+> à la couche incertitude (ablation) et *monotone* sur toute la plage du paramètre.
+> Le 1/N reste un benchmark exigeant (Sharpe 0.62), discuté honnêtement plus bas.
 
 Ce projet **n'est pas un benchmark de méthodes**. C'est une **décision**
 d'allocation et la mesure de son **impact**. Les comparaisons d'architectures
@@ -65,6 +67,36 @@ Univers détaillé : voir [`src/config.py`](src/config.py).
 
 ---
 
+## Résultats (backtest 2013→2026, 158 mois, net de coûts à 10 bps)
+
+| Stratégie | Sharpe | Rend. ann. | Vol ann. | Max DD | Turnover |
+|---|---|---|---|---|---|
+| **robust** *(headline, incertitude-aware)* | **0.33** | 1.6 % | 5.2 % | **−18.3 %** | 0.56 |
+| markowitz_lw *(LW, sans pénalité)* | 0.23 | 1.7 % | 9.5 % | −25.9 % | 1.17 |
+| markowitz_naive *(cov. échantillon)* | 0.22 | 1.6 % | 9.4 % | −26.0 % | 1.17 |
+| equal_weight *(1/N)* | 0.62 | 5.2 % | 8.7 % | −19.6 % | 0.02 |
+
+**Ce que ça démontre.** La chaîne d'ablation isole l'apport de chaque ingrédient :
+`robust` (0.33) > `markowitz_lw` (0.23) > `markowitz_naive` (0.22). Le gain vient
+donc bien de la **couche incertitude**, pas du seul shrinkage. Et il est
+**monotone** : balayer la pénalité κ de 0 à 8 fait monter le Sharpe de 0.23 à 0.36,
+descendre le drawdown de −26 % à −18 % et le turnover de 1.17 à 0.45
+(`results/figures/sensitivity_kappa.png`) — ce n'est pas un point isolé bien choisi.
+
+**Honnêteté.** Le **1/N bat les stratégies optimisées** (Sharpe 0.62). Les
+optimiseurs deviennent défensifs (vol 5 %, lourds en obligations) car le signal de
+rendement est faible et l'aversion au risque les pousse vers le min-variance ; ils
+ratent en partie le marché haussier actions 2013-2026. C'est le résultat classique
+de DeMiguel et al. (2009) : 1/N est un benchmark redoutable. Le projet **ne le
+masque pas** — la contribution démontrée est que *quantifier l'incertitude répare
+l'instabilité de Markowitz*, pas que l'optimisation batte 1/N. Fermer cet écart
+proprement est un travail futur assumé (voir TODO).
+
+Figures : `results/figures/equity_curves.png`, `drawdowns.png`,
+`uncertainty_calibration.png`, `sensitivity_kappa.png`.
+
+---
+
 ## Structure
 
 ```
@@ -77,8 +109,8 @@ portfolio-optim/
 │   ├── etl/          # ✅ couche 0 — téléchargement & nettoyage
 │   ├── features/     # ✅ couche 0 — construction de features
 │   ├── models/       # ✅ couches 1-2 — forecasting + incertitude
-│   ├── optimization/ # ⬜ couche 3 — allocation (cvxpy)
-│   └── evaluation/   # ⬜ couche 4 — backtest & métriques
+│   ├── optimization/ # ✅ couche 3 — allocation robuste (cvxpy)
+│   └── evaluation/   # ✅ couche 4 — backtest, sensibilité & métriques
 ├── notebooks/        # exploration uniquement
 ├── results/          # figures/ & metrics/ (gitignored)
 ├── tests/
@@ -99,7 +131,7 @@ make help       # liste toutes les targets
 ```
 
 Targets du pipeline : `data` → `features` → `forecast` → `uncertainty`
-→ `optimize` → `backtest` (`make all`).
+→ `optimize` → `backtest` (`make all`) ; analyse de robustesse : `make sensitivity`.
 
 ---
 
@@ -119,12 +151,18 @@ Targets du pipeline : `data` → `features` → `forecast` → `uncertainty`
       GBM** (B=30). Sépare σ épistémique (fiabilité de μ, par actif → intrant de
       l'optimiseur) et σ aléatoire (résidus out-of-bag). Calibration vérifiée
       (légèrement conservative). MC Dropout / quantile : annexe.
-- [ ] **Couche 3 — Optimisation** : formulation cvxpy mean-variance robuste
-      pénalisant l'incertitude ; contraintes (long-only, plafonds, budget).
-- [ ] **Couche 4 — Backtest** : walk-forward, rebalancement périodique, coûts
-      de transaction ; Sharpe / max DD / turnover vs les deux benchmarks.
+- [x] **Couche 3 — Optimisation** : mean-variance **robuste** (cvxpy) pénalisant
+      σ épistémique via un terme conique ; Σ Ledoit-Wolf ; long-only, pleinement
+      investi, plafond 30 %/actif. Ablation `markowitz_lw` (LW sans pénalité) +
+      `markowitz_naive` (cov. échantillon) + 1/N.
+- [x] **Couche 4 — Backtest** : walk-forward, rebalancement mensuel, coûts 10 bps,
+      turnover drift-aware ; Sharpe / max DD / Calmar / turnover + **balayage de κ**
+      (sensibilité). Verdict attribué et monotone.
 - [ ] **Reporting CHF** : conversion USD→CHF des courbes d'équité finales.
-- [ ] **Annexe** : tableau comparatif des méthodes (architectures, incertitude).
+- [ ] **Fermer l'écart 1/N** (travail futur) : signal de rendement plus fort,
+      ou ciblage de volatilité pour une comparaison à risque égal.
+- [ ] **Annexe** : tableau comparatif des méthodes (architectures, incertitude),
+      ARIMA & LSTM/Transformer, aléatoire par actif.
 
 ---
 

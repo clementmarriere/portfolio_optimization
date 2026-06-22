@@ -21,11 +21,14 @@ forecast:  ## [Layer 1] Walk-forward forecasts (headline + annex) -> data/proces
 uncertainty:  ## [Layer 2] Bootstrap-ensemble forecast uncertainty -> data/processed/
 	$(PYTHON) -m src.models.uncertainty
 
-optimize:  ## [Layer 3] Solve uncertainty-aware allocation (cvxpy) (TODO)
-	@echo "TODO: implement src/optimization"
+optimize:  ## [Layer 3] Solve uncertainty-aware allocation (cvxpy) -> data/processed/
+	$(PYTHON) -m src.optimization.build_weights
 
-backtest:  ## [Layer 4] Backtest vs 1/N and naive Markowitz; write results/ (TODO)
-	@echo "TODO: implement src/evaluation"
+backtest:  ## [Layer 4] Backtest vs 1/N and naive Markowitz -> results/
+	$(PYTHON) -m src.evaluation.backtest
+
+sensitivity:  ## [Layer 4] Robustness of the robust edge across kappa -> results/
+	$(PYTHON) -m src.evaluation.sensitivity
 
 all: data features forecast uncertainty optimize backtest  ## Run the full pipeline
 

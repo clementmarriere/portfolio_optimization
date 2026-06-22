@@ -36,6 +36,7 @@ FORECAST_METRICS_PATH = METRICS_DIR / "forecast_metrics.csv"
 FORECASTS_UNCERTAINTY_PATH = PROCESSED_DIR / "forecasts_uncertainty.parquet"
 CALIBRATION_PATH = METRICS_DIR / "uncertainty_calibration.csv"
 CALIBRATION_FIG_PATH = FIGURES_DIR / "uncertainty_calibration.png"
+WEIGHTS_PATH = PROCESSED_DIR / "weights.parquet"
 
 # --------------------------------------------------------------------------- #
 # Backtest window
@@ -76,6 +77,36 @@ UNCERTAINTY_METHOD = "bootstrap"
 N_BOOTSTRAP = 30             # ensemble size (B). Higher = smoother sigma, slower.
 # Nominal coverage levels for the calibration check.
 CALIBRATION_LEVELS = (0.5, 0.8, 0.9)
+
+# --------------------------------------------------------------------------- #
+# Optimization layer (couche 3)
+# --------------------------------------------------------------------------- #
+COV_LOOKBACK_DAYS = 252      # trailing window for the covariance estimate
+RISK_AVERSION = 5.0          # gamma: weight on portfolio variance
+UNCERTAINTY_PENALTY = 3.0    # kappa: robust penalty on epistemic forecast sigma
+MAX_WEIGHT = 0.30            # per-asset cap (diversification floor)
+# robust = headline (uncertainty-aware). markowitz_lw isolates the shrinkage
+# effect (same Sigma as robust, no uncertainty penalty) so that robust vs
+# markowitz_lw measures the pure contribution of the uncertainty layer.
+HEADLINE_STRATEGY = "robust"
+STRATEGIES = ["robust", "markowitz_lw", "markowitz_naive", "equal_weight"]
+
+# --------------------------------------------------------------------------- #
+# Backtest layer (couche 4)
+# --------------------------------------------------------------------------- #
+TRANSACTION_COST_BPS = 10.0  # per unit of turnover, applied at each rebalance
+RISK_FREE_ANNUAL = 0.0       # kept at 0 for a clean, assumption-light Sharpe
+PERIODS_PER_YEAR = 12        # monthly rebalancing
+
+PORTFOLIO_RETURNS_PATH = PROCESSED_DIR / "portfolio_returns.parquet"
+BACKTEST_METRICS_PATH = METRICS_DIR / "backtest_metrics.csv"
+EQUITY_FIG_PATH = FIGURES_DIR / "equity_curves.png"
+DRAWDOWN_FIG_PATH = FIGURES_DIR / "drawdowns.png"
+
+# Sensitivity analysis: does the robust edge hold across a range of kappa?
+KAPPA_GRID = (0.0, 1.0, 2.0, 3.0, 5.0, 8.0)
+SENSITIVITY_PATH = METRICS_DIR / "sensitivity_kappa.csv"
+SENSITIVITY_FIG_PATH = FIGURES_DIR / "sensitivity_kappa.png"
 
 
 # --------------------------------------------------------------------------- #
