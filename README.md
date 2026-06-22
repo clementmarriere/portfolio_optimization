@@ -76,7 +76,7 @@ portfolio-optim/
 │   ├── config.py     # source unique : chemins, dates, univers
 │   ├── etl/          # ✅ couche 0 — téléchargement & nettoyage
 │   ├── features/     # ✅ couche 0 — construction de features
-│   ├── models/       # ✅ couche 1 forecasting ; ⬜ couche 2 incertitude
+│   ├── models/       # ✅ couches 1-2 — forecasting + incertitude
 │   ├── optimization/ # ⬜ couche 3 — allocation (cvxpy)
 │   └── evaluation/   # ⬜ couche 4 — backtest & métriques
 ├── notebooks/        # exploration uniquement
@@ -115,8 +115,10 @@ Targets du pipeline : `data` → `features` → `forecast` → `uncertainty`
       allocation (IC, IR, hit-rate, RMSE). Annexe = ridge / moving-average /
       historical-mean derrière la même interface. ARIMA & LSTM/Transformer : à
       brancher en annexe (interface prête).
-- [ ] **Couche 2 — Incertitude** : MC Dropout (réutilise immo_antibes) vs
-      bootstrap vs VAE ; **calibration** des intervalles à vérifier.
+- [x] **Couche 2 — Incertitude** : méthode de tête = **bootstrap ensemble du
+      GBM** (B=30). Sépare σ épistémique (fiabilité de μ, par actif → intrant de
+      l'optimiseur) et σ aléatoire (résidus out-of-bag). Calibration vérifiée
+      (légèrement conservative). MC Dropout / quantile : annexe.
 - [ ] **Couche 3 — Optimisation** : formulation cvxpy mean-variance robuste
       pénalisant l'incertitude ; contraintes (long-only, plafonds, budget).
 - [ ] **Couche 4 — Backtest** : walk-forward, rebalancement périodique, coûts

@@ -18,8 +18,8 @@ features:  ## [Layer 0] Build model features from the clean panel -> data/proces
 forecast:  ## [Layer 1] Walk-forward forecasts (headline + annex) -> data/processed/
 	$(PYTHON) -m src.models.walkforward
 
-uncertainty:  ## [Layer 2] Quantify forecast uncertainty for the optimiser (TODO)
-	@echo "TODO: implement uncertainty estimation"
+uncertainty:  ## [Layer 2] Bootstrap-ensemble forecast uncertainty -> data/processed/
+	$(PYTHON) -m src.models.uncertainty
 
 optimize:  ## [Layer 3] Solve uncertainty-aware allocation (cvxpy) (TODO)
 	@echo "TODO: implement src/optimization"

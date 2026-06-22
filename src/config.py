@@ -33,6 +33,9 @@ COVERAGE_PATH = PROCESSED_DIR / "coverage.csv"
 FEATURES_PATH = PROCESSED_DIR / "features.parquet"
 FORECASTS_PATH = PROCESSED_DIR / "forecasts.parquet"
 FORECAST_METRICS_PATH = METRICS_DIR / "forecast_metrics.csv"
+FORECASTS_UNCERTAINTY_PATH = PROCESSED_DIR / "forecasts_uncertainty.parquet"
+CALIBRATION_PATH = METRICS_DIR / "uncertainty_calibration.csv"
+CALIBRATION_FIG_PATH = FIGURES_DIR / "uncertainty_calibration.png"
 
 # --------------------------------------------------------------------------- #
 # Backtest window
@@ -64,6 +67,15 @@ HEADLINE_MODEL = "gbm"
 TRAIN_MIN_MONTHS = 60
 # Baselines reported alongside the headline (the "annex" comparison).
 ANNEX_MODELS = ["ridge", "moving_average", "historical_mean"]
+
+# --------------------------------------------------------------------------- #
+# Uncertainty layer (couche 2)
+# --------------------------------------------------------------------------- #
+# Headline = bootstrap ensemble of the headline forecaster.
+UNCERTAINTY_METHOD = "bootstrap"
+N_BOOTSTRAP = 30             # ensemble size (B). Higher = smoother sigma, slower.
+# Nominal coverage levels for the calibration check.
+CALIBRATION_LEVELS = (0.5, 0.8, 0.9)
 
 
 # --------------------------------------------------------------------------- #

@@ -34,11 +34,25 @@ def register(name: str, factory: Callable[[], Forecaster]) -> None:
     _REGISTRY[name] = factory
 
 
+def _ensure_registered() -> None:
+    """Populate the registry on demand.
+
+    Registration happens as an import side effect of the model modules. In
+    joblib worker processes (esp. the 'spawn' start method) those imports don't
+    re-run, so the registry would be empty. Importing here — lazily, to avoid a
+    circular import — guarantees it is populated in any process.
+    """
+    if not _REGISTRY:
+        from src.models import baselines, ml  # noqa: F401
+
+
 def get_forecaster(name: str) -> Forecaster:
+    _ensure_registered()
     if name not in _REGISTRY:
         raise KeyError(f"Unknown model '{name}'. Available: {sorted(_REGISTRY)}")
     return _REGISTRY[name]()
 
 
 def available_models() -> list[str]:
+    _ensure_registered()
     return sorted(_REGISTRY)
