@@ -92,8 +92,15 @@ masque pas** — la contribution démontrée est que *quantifier l'incertitude r
 l'instabilité de Markowitz*, pas que l'optimisation batte 1/N. Fermer cet écart
 proprement est un travail futur assumé (voir TODO).
 
-Figures : `results/figures/equity_curves.png`, `drawdowns.png`,
-`uncertainty_calibration.png`, `sensitivity_kappa.png`.
+![Courbes d'équité nettes par stratégie](results/figures/equity_curves.png)
+
+À gauche → droite de κ, le robuste gagne en Sharpe et perd en drawdown/turnover,
+sans rupture — la conclusion ne tient pas à un κ choisi à la main :
+
+![Sensibilité du Sharpe et du drawdown à κ](results/figures/sensitivity_kappa.png)
+
+Autres figures : `results/figures/drawdowns.png`,
+`results/figures/uncertainty_calibration.png`.
 
 ---
 
