@@ -102,6 +102,23 @@ sans rupture — la conclusion ne tient pas à un κ choisi à la main :
 Autres figures : `results/figures/drawdowns.png`,
 `results/figures/uncertainty_calibration.png`.
 
+### Tient-il sur tous les régimes ? (`make subperiods`)
+
+Le résultat n'est pas l'artefact d'une période chanceuse. Face à la **famille
+Markowitz**, le robuste mène dans 3 régimes sur 5, traîne marginalement dans 2 :
+
+| Régime | Métrique | robust | meilleur Markowitz | Verdict |
+|---|---|---|---|---|
+| Full 2013-2026 | Sharpe | 0.33 | 0.23 | **mène** |
+| Bull 2013-2019 | Sharpe | 0.58 | 0.30 | **mène** |
+| Crash COVID 2020 | perte cumulée | **−1.0 %** | −8.8 % | **mène (nettement)** |
+| Post-2020 | Sharpe | 0.15 | 0.18 | traîne (−0.02) |
+| Choc de taux 2022 | perte cumulée | −8.5 % | −7.7 % | traîne (−0.8 pt) |
+
+Point fort : pendant le **crash COVID**, le robuste ne perd que **−1 %** contre
+**−9 %** pour Markowitz (et −2 % pour le 1/N) — la prudence face aux prévisions
+incertaines paie quand le marché décroche. Détail : `results/metrics/subperiod_metrics.csv`.
+
 ---
 
 ## Structure
@@ -138,7 +155,7 @@ make help       # liste toutes les targets
 ```
 
 Targets du pipeline : `data` → `features` → `forecast` → `uncertainty`
-→ `optimize` → `backtest` (`make all`) ; analyse de robustesse : `make sensitivity`.
+→ `optimize` → `backtest` (`make all`) ; robustesse : `make sensitivity`, `make subperiods`.
 
 ---
 

@@ -30,6 +30,9 @@ backtest:  ## [Layer 4] Backtest vs 1/N and naive Markowitz -> results/
 sensitivity:  ## [Layer 4] Robustness of the robust edge across kappa -> results/
 	$(PYTHON) -m src.evaluation.sensitivity
 
+subperiods:  ## [Layer 4] Does the result hold across market regimes? -> results/
+	$(PYTHON) -m src.evaluation.subperiods
+
 all: data features forecast uncertainty optimize backtest  ## Run the full pipeline
 
 test:  ## Run the test suite
