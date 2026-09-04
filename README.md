@@ -1,4 +1,4 @@
-# portfolio-optim — Allocation de portefeuille sous incertitude
+# portfolio-optim : Allocation de portefeuille sous incertitude
 
 > **Résultat (une phrase).** Quantifier l'incertitude des prévisions de rendement
 > et l'injecter dans un optimiseur robuste **répare l'instabilité de Markowitz** :
