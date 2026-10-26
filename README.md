@@ -1,198 +1,196 @@
-# portfolio-optim : Allocation de portefeuille sous incertitude
-
-> **Résultat (une phrase).** Quantifier l'incertitude des prévisions de rendement
-> et l'injecter dans un optimiseur robuste **répare l'instabilité de Markowitz** :
-> sur un backtest 2013→2026, le Sharpe passe de 0.22 à **0.33**, le max drawdown
-> de −26 % à **−18 %** et le turnover est **divisé par ~2.6** — un gain *attribué*
-> à la couche incertitude (ablation) et *monotone* sur toute la plage du paramètre.
-> Le 1/N reste un benchmark exigeant (Sharpe 0.62), discuté honnêtement plus bas.
-
-Ce projet **n'est pas un benchmark de méthodes**. C'est une **décision**
-d'allocation et la mesure de son **impact**. Les comparaisons d'architectures
-(LSTM vs ARIMA, bootstrap vs MC Dropout vs VAE) sont des *détails d'implémentation*
-documentés en annexe — une seule combinaison gagnante est mise en avant dans le
-pipeline principal.
-
+# portfolio_optimization: Portfolio allocation under uncertainty
+ 
+> **Result (one sentence).** Quantifying the uncertainty of return forecasts
+> and feeding it into a robust optimizer **fixes the instability of Markowitz**:
+> over a 2013→2026 backtest, the Sharpe ratio rises from 0.23 to **0.33**, the max drawdown
+> goes from −26% to **−18%**, and turnover is **divided by ~2**. The gain is *attributed*
+> to the uncertainty layer (ablation) and is *monotone* across the whole parameter range.
+> 1/N remains a demanding benchmark (Sharpe 0.62), discussed honestly below.
+ 
+This project **is not a benchmark of methods**. It is an allocation **decision**
+and the measurement of its **impact**. Architecture comparisons
+(LSTM vs ARIMA, bootstrap vs MC Dropout vs VAE) are *implementation details*
+to be documented in an appendix (planned). A single winning combination is highlighted in the
+main pipeline.
+ 
 ---
-
-## Le pipeline en 4 couches
-
+ 
+## The 4-layer pipeline
+ 
 ```
             ┌─────────────────────────────────────────────────────────────┐
- Couche 0   │  DONNÉES  (src/etl, src/features)                            │
-            │  Univers d'ETFs → panel de prix/rendements propre (parquet)  │
+ Layer 0    │  DATA  (src/etl, src/features)                               │
+            │  ETF universe → clean price/return panel (parquet)           │
             └─────────────────────────────────────────────────────────────┘
                                       │
             ┌─────────────────────────────────────────────────────────────┐
- Couche 1   │  FORECASTING  (src/models)                                   │
-            │  Prévision des rendements attendus par actif                 │
-            │  → gagnant mis en avant ; baselines (ARIMA, MA) en annexe    │
+ Layer 1    │  FORECASTING  (src/models)                                   │
+            │  Forecast of expected returns per asset                      │
+            │  → winner highlighted; baselines (ARIMA, MA) in appendix     │
             └─────────────────────────────────────────────────────────────┘
                                       │
             ┌─────────────────────────────────────────────────────────────┐
- Couche 2   │  INCERTITUDE  (src/models)                                   │
-            │  Quantification de l'incertitude de chaque prévision         │
-            │  → distribution / intervalles qui alimentent l'optimiseur    │
+ Layer 2    │  UNCERTAINTY  (src/models)                                   │
+            │  Uncertainty quantification of each forecast                 │
+            │  → distribution / intervals that feed the optimizer          │
             └─────────────────────────────────────────────────────────────┘
                                       │
             ┌─────────────────────────────────────────────────────────────┐
- Couche 3   │  OPTIMISATION  (src/optimization, cvxpy)                     │
-            │  Allocation sous contraintes qui PÉNALISE l'incertitude      │
-            │  (≈ robust / Bayesian mean-variance) → poids du portefeuille │
+ Layer 3    │  OPTIMIZATION  (src/optimization, cvxpy)                     │
+            │  Constrained allocation that PENALIZES uncertainty           │
+            │  (≈ robust / Bayesian mean-variance) → portfolio weights     │
             └─────────────────────────────────────────────────────────────┘
                                       │
             ┌─────────────────────────────────────────────────────────────┐
- Couche 4   │  BACKTEST  (src/evaluation)                                  │
-            │  Walk-forward vs 1/N et Markowitz naïf                        │
-            │  → Sharpe, max drawdown, turnover, courbes d'équité          │
+ Layer 4    │  BACKTEST  (src/evaluation)                                  │
+            │  Walk-forward vs 1/N and naive Markowitz                     │
+            │  → Sharpe, max drawdown, turnover, equity curves             │
             └─────────────────────────────────────────────────────────────┘
 ```
-
-La couche 2 est le cœur de la thèse : **l'incertitude n'est pas un diagnostic,
-c'est un intrant de la décision.** Une prévision peu fiable doit se traduire par
-une allocation plus prudente sur cet actif.
-
+ 
+Layer 2 is the core of the thesis: **uncertainty is not a diagnostic,
+it is an input to the decision.** An unreliable forecast should translate into
+a more cautious allocation on that asset.
+ 
 ---
-
-## Décisions de cadrage (figées)
-
-| Sujet | Choix | Raison |
+ 
+## Framing decisions (frozen)
+ 
+| Topic | Choice | Reason |
 |---|---|---|
-| **Univers** | ~17 ETFs hybrides par classe d'actifs (actions US/Europe/EM, oblig. govt/corp/IG/HY/TIPS, immobilier, or, matières premières, cash) | Diversification + historique long |
-| **Période** | 2007 → aujourd'hui | Inclut la crise 2008 — meilleur stress-test du drawdown |
-| **Devise (données)** | USD | CHF = reporting downstream (voir TODO) |
-| **Benchmarks à battre** | **1/N** (plancher dur, DeMiguel 2009) **+ Markowitz max-Sharpe naïf** (repère d'instabilité) | Battre les deux = l'argument le plus fort |
-
-Univers détaillé : voir [`src/config.py`](src/config.py).
-
+| **Universe** | 16 ETFs, one or more per asset class (US/Europe/EM equities, govt/corp/IG/HY/TIPS bonds, real estate, gold, commodities, cash) | Diversification + long history |
+| **Period** | 2007 → today | Includes the 2008 crisis, the best drawdown stress test |
+| **Currency (data)** | USD | CHF = downstream reporting (see TODO) |
+| **Benchmarks to beat** | **1/N** (hard floor, DeMiguel 2009) **+ naive max-Sharpe Markowitz** (instability reference) | Beating both is the strongest argument |
+ 
+Detailed universe: see [`src/config.py`](src/config.py).
+ 
 ---
-
-## Résultats (backtest 2013→2026, 158 mois, net de coûts à 10 bps)
-
-| Stratégie | Sharpe | Rend. ann. | Vol ann. | Max DD | Turnover |
+ 
+## Results (2013→2026 backtest, 158 months, net of 10 bps costs)
+ 
+| Strategy | Sharpe | Ann. return | Ann. vol | Max DD | Turnover |
 |---|---|---|---|---|---|
-| **robust** *(headline, incertitude-aware)* | **0.33** | 1.6 % | 5.2 % | **−18.3 %** | 0.56 |
-| markowitz_lw *(LW, sans pénalité)* | 0.23 | 1.7 % | 9.5 % | −25.9 % | 1.17 |
-| markowitz_naive *(cov. échantillon)* | 0.22 | 1.6 % | 9.4 % | −26.0 % | 1.17 |
-| equal_weight *(1/N)* | 0.62 | 5.2 % | 8.7 % | −19.6 % | 0.02 |
-
-**Ce que ça démontre.** La chaîne d'ablation isole l'apport de chaque ingrédient :
-`robust` (0.33) > `markowitz_lw` (0.23) > `markowitz_naive` (0.22). Le gain vient
-donc bien de la **couche incertitude**, pas du seul shrinkage. Et il est
-**monotone** : balayer la pénalité κ de 0 à 8 fait monter le Sharpe de 0.23 à 0.36,
-descendre le drawdown de −26 % à −18 % et le turnover de 1.17 à 0.45
-(`results/figures/sensitivity_kappa.png`) — ce n'est pas un point isolé bien choisi.
-
-**Honnêteté.** Le **1/N bat les stratégies optimisées** (Sharpe 0.62). Les
-optimiseurs deviennent défensifs (vol 5 %, lourds en obligations) car le signal de
-rendement est faible et l'aversion au risque les pousse vers le min-variance ; ils
-ratent en partie le marché haussier actions 2013-2026. C'est le résultat classique
-de DeMiguel et al. (2009) : 1/N est un benchmark redoutable. Le projet **ne le
-masque pas** — la contribution démontrée est que *quantifier l'incertitude répare
-l'instabilité de Markowitz*, pas que l'optimisation batte 1/N. Fermer cet écart
-proprement est un travail futur assumé (voir TODO).
-
-![Courbes d'équité nettes par stratégie](results/figures/equity_curves.png)
-
-À gauche → droite de κ, le robuste gagne en Sharpe et perd en drawdown/turnover,
-sans rupture — la conclusion ne tient pas à un κ choisi à la main :
-
-![Sensibilité du Sharpe et du drawdown à κ](results/figures/sensitivity_kappa.png)
-
-Autres figures : `results/figures/drawdowns.png`,
+| **robust** *(headline, uncertainty-aware)* | **0.33** | 1.6% | 5.2% | **−18.3%** | 0.56 |
+| markowitz_lw *(Ledoit-Wolf, no penalty)* | 0.23 | 1.7% | 9.5% | −25.9% | 1.17 |
+| markowitz_naive *(sample covariance)* | 0.22 | 1.6% | 9.4% | −26.0% | 1.17 |
+| equal_weight *(1/N)* | 0.62 | 5.2% | 8.7% | −19.6% | 0.02 |
+ 
+**What this shows.** The ablation chain isolates the contribution of each ingredient:
+`robust` (0.33) > `markowitz_lw` (0.23) > `markowitz_naive` (0.22). The gain therefore
+comes from the **uncertainty layer**, not from shrinkage alone. It is also
+**monotone**: sweeping the penalty κ from 0 to 8 raises the Sharpe from 0.23 to 0.36,
+lowers the drawdown from −26% to −18%, and lowers turnover from 1.17 to 0.45
+(`results/figures/sensitivity_kappa.png`). This is not a single well-chosen point.
+ 
+**Honesty.** **1/N beats the optimized strategies** (Sharpe 0.62). The
+optimizers become defensive (5% vol, heavy in bonds) because the return signal is
+weak and risk aversion pushes them toward minimum variance; they partly
+miss the 2013-2026 equity bull market. This is the classic result
+of DeMiguel et al. (2009): 1/N is a formidable benchmark. The project **does not hide
+it**. The demonstrated contribution is that *quantifying uncertainty fixes
+Markowitz instability*, not that optimization beats 1/N. Closing this gap
+properly is deliberate future work (see TODO).
+ 
+![Net equity curves by strategy](results/figures/equity_curves.png)
+ 
+From left to right in κ, the robust strategy gains Sharpe and loses drawdown/turnover,
+with no break. The conclusion does not depend on a hand-picked κ:
+ 
+![Sensitivity of Sharpe and drawdown to κ](results/figures/sensitivity_kappa.png)
+ 
+Other figures: `results/figures/drawdowns.png`,
 `results/figures/uncertainty_calibration.png`.
-
-### Tient-il sur tous les régimes ? (`make subperiods`)
-
-Le résultat n'est pas l'artefact d'une période chanceuse. Face à la **famille
-Markowitz**, le robuste mène dans 3 régimes sur 5, traîne marginalement dans 2 :
-
-| Régime | Métrique | robust | meilleur Markowitz | Verdict |
+ 
+### Does it hold across all regimes? (`make subperiods`)
+ 
+The result is not the artifact of a lucky period. Against the **Markowitz
+family**, the robust strategy leads in 3 regimes out of 5 and trails marginally in 2:
+ 
+| Regime | Metric | robust | best Markowitz | Verdict |
 |---|---|---|---|---|
-| Full 2013-2026 | Sharpe | 0.33 | 0.23 | **mène** |
-| Bull 2013-2019 | Sharpe | 0.58 | 0.30 | **mène** |
-| Crash COVID 2020 | perte cumulée | **−1.0 %** | −8.8 % | **mène (nettement)** |
-| Post-2020 | Sharpe | 0.15 | 0.18 | traîne (−0.02) |
-| Choc de taux 2022 | perte cumulée | −8.5 % | −7.7 % | traîne (−0.8 pt) |
-
-Point fort : pendant le **crash COVID**, le robuste ne perd que **−1 %** contre
-**−9 %** pour Markowitz (et −2 % pour le 1/N) — la prudence face aux prévisions
-incertaines paie quand le marché décroche. Détail : `results/metrics/subperiod_metrics.csv`.
-
+| Full 2013-2026 | Sharpe | 0.33 | 0.23 | **leads** |
+| Bull 2013-2019 | Sharpe | 0.58 | 0.30 | **leads** |
+| COVID crash 2020 | cumulative loss | **−1.0%** | −8.8% | **leads (clearly)** |
+| Post-2020 | Sharpe | 0.15 | 0.18 | trails (−0.02) |
+| 2022 rate shock | cumulative loss | −8.5% | −7.7% | trails (−0.8 pt) |
+ 
+Strong point: during the **COVID crash**, the robust strategy loses only **−1%** against
+**−9%** for Markowitz (and −2% for 1/N). Caution toward uncertain forecasts
+pays off when the market drops. Details: `results/metrics/subperiod_metrics.csv`.
+ 
 ---
-
+ 
 ## Structure
-
+ 
 ```
-portfolio-optim/
+portfolio_optimization/
 ├── data/
-│   ├── raw/          # prix bruts téléchargés (gitignored)
-│   └── processed/    # panel propre : prices / returns / coverage (parquet)
+│   ├── raw/          # downloaded raw prices (gitignored)
+│   └── processed/    # clean panel: prices / returns / coverage (parquet)
 ├── src/
-│   ├── config.py     # source unique : chemins, dates, univers
-│   ├── etl/          # ✅ couche 0 — téléchargement & nettoyage
-│   ├── features/     # ✅ couche 0 — construction de features
-│   ├── models/       # ✅ couches 1-2 — forecasting + incertitude
-│   ├── optimization/ # ✅ couche 3 — allocation robuste (cvxpy)
-│   └── evaluation/   # ✅ couche 4 — backtest, sensibilité & métriques
-├── notebooks/        # exploration uniquement
-├── results/          # figures/ & metrics/ (gitignored)
+│   ├── config.py     # single source: paths, dates, universe
+│   ├── etl/          # ✅ layer 0: download & cleaning
+│   ├── features/     # ✅ layer 0: feature construction
+│   ├── models/       # ✅ layers 1-2: forecasting + uncertainty
+│   ├── optimization/ # ✅ layer 3: robust allocation (cvxpy)
+│   └── evaluation/   # ✅ layer 4: backtest, sensitivity & metrics
+├── notebooks/        # exploration only
+├── results/          # figures/ & metrics/ (committed so the results are visible)
 ├── tests/
 ├── Makefile
 └── requirements.txt
 ```
-
+ 
 ---
-
-## Démarrage
-
+ 
+## Getting started
+ 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-make setup      # dépendances épinglées
-make data       # télécharge & nettoie l'univers -> data/processed/
-make test       # tests ETL (sans réseau)
-make help       # liste toutes les targets
+make setup      # pinned dependencies
+make data       # download & clean the universe -> data/processed/
+make test       # run the test suite
+make help       # list all targets
 ```
-
-Targets du pipeline : `data` → `features` → `forecast` → `uncertainty`
-→ `optimize` → `backtest` (`make all`) ; robustesse : `make sensitivity`, `make subperiods`.
-
+ 
+Pipeline targets: `data` → `features` → `forecast` → `uncertainty`
+→ `optimize` → `backtest` (`make all`); robustness: `make sensitivity`, `make subperiods`.
+ 
 ---
-
-## État & TODO
-
-- [x] **Couche 0 — Données** : ETL yfinance, nettoyage (jours fériés / NaN),
-      sortie parquet + rapport de couverture, tests.
-- [x] **Couche 0 — Features** : momentum (1/3/6/12m, 12-1), vol & downside-vol
-      glissantes, écart MA200, drawdown 1 an ; cible = rendement fin-de-mois →
-      fin-de-mois (non chevauchant), contrat anti-fuite testé. Horizon **mensuel**.
-- [x] **Couche 1 — Forecasting** : modèle de tête = **ML poolé cross-sectionnel**
-      (GBM), walk-forward à fenêtre expansive sans fuite, métriques orientées
-      allocation (IC, IR, hit-rate, RMSE). Annexe = ridge / moving-average /
-      historical-mean derrière la même interface. ARIMA & LSTM/Transformer : à
-      brancher en annexe (interface prête).
-- [x] **Couche 2 — Incertitude** : méthode de tête = **bootstrap ensemble du
-      GBM** (B=30). Sépare σ épistémique (fiabilité de μ, par actif → intrant de
-      l'optimiseur) et σ aléatoire (résidus out-of-bag). Calibration vérifiée
-      (légèrement conservative). MC Dropout / quantile : annexe.
-- [x] **Couche 3 — Optimisation** : mean-variance **robuste** (cvxpy) pénalisant
-      σ épistémique via un terme conique ; Σ Ledoit-Wolf ; long-only, pleinement
-      investi, plafond 30 %/actif. Ablation `markowitz_lw` (LW sans pénalité) +
-      `markowitz_naive` (cov. échantillon) + 1/N.
-- [x] **Couche 4 — Backtest** : walk-forward, rebalancement mensuel, coûts 10 bps,
-      turnover drift-aware ; Sharpe / max DD / Calmar / turnover + **balayage de κ**
-      (sensibilité). Verdict attribué et monotone.
-- [ ] **Reporting CHF** : conversion USD→CHF des courbes d'équité finales.
-- [ ] **Fermer l'écart 1/N** (travail futur) : signal de rendement plus fort,
-      ou ciblage de volatilité pour une comparaison à risque égal.
-- [ ] **Annexe** : tableau comparatif des méthodes (architectures, incertitude),
-      ARIMA & LSTM/Transformer, aléatoire par actif.
-
+ 
+## Status & TODO
+ 
+- [x] **Layer 0, Data**: yfinance ETL, cleaning (holidays / NaN),
+      parquet output + coverage report, tests.
+- [x] **Layer 0, Features**: momentum (1/3/6/12m, 12-1), rolling vol & downside vol,
+      MA200 gap, 1-year drawdown; target = month-end → month-end return
+      (non-overlapping), tested anti-leakage contract. **Monthly** horizon.
+- [x] **Layer 1, Forecasting**: headline model = **pooled cross-sectional ML**
+      (GBM), expanding-window walk-forward without leakage, allocation-oriented
+      metrics (IC, IR, hit-rate, RMSE). Appendix = ridge / moving-average /
+      historical-mean behind the same interface. ARIMA & LSTM/Transformer: to be
+      plugged in as appendix (interface ready).
+- [x] **Layer 2, Uncertainty**: headline method = **bootstrap ensemble of the
+      GBM** (B=30). Separates epistemic σ (reliability of μ, per asset → optimizer
+      input) from aleatoric σ (out-of-bag residuals). Calibration checked
+      (slightly conservative). MC Dropout / quantile: appendix.
+- [x] **Layer 3, Optimization**: **robust** mean-variance (cvxpy) penalizing
+      epistemic σ through a conic term; Ledoit-Wolf Σ; long-only, fully
+      invested, 30% cap per asset. Ablation `markowitz_lw` (LW without penalty) +
+      `markowitz_naive` (sample covariance) + 1/N.
+- [x] **Layer 4, Backtest**: walk-forward, monthly rebalancing, 10 bps costs,
+      drift-aware turnover; Sharpe / max DD / Calmar / turnover + **κ sweep**
+      (sensitivity). Attributed and monotone verdict.
+- [ ] **CHF reporting**: USD→CHF conversion of the final equity curves.
+- [ ] **Close the 1/N gap** (future work): stronger return signal,
+      or volatility targeting for an equal-risk comparison.
+- [ ] **Appendix**: comparison table of methods (architectures, uncertainty),
+      ARIMA & LSTM/Transformer, random per asset.
 ---
-
-## Lignée
-
-Extension de `immo_antibes` (benchmark LSTM/GRU/Transformer/MA + MC Dropout sur
-séries immobilières). La leçon retenue : **ne pas s'arrêter au benchmark.** Ici,
-le livrable est une allocation et son impact mesuré, pas un classement de modèles.
-```
+ 
+## Lineage
+ 
+Extension of `immo_antibes` (LSTM/GRU/Transformer/MA benchmark + MC Dropout on
+real estate time series). The lesson learned: **do not stop at the benchmark.** Here,
+the deliverable is an allocation and its measured impact, not a ranking of models.
